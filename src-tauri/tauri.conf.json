@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AudioHarbor",
+  "version": "0.1.0",
+  "identifier": "io.audioharbor.desktop",
+  "build": { "beforeDevCommand": "npm run dev", "devUrl": "http://127.0.0.1:1420", "beforeBuildCommand": "npm run licenses:collect && npm run build", "frontendDist": "../dist" },
+  "app": {
+    "windows": [{ "label": "main", "title": "AudioHarbor", "width": 1180, "height": 820, "minWidth": 780, "minHeight": 620, "center": true }],
+    "security": { "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'; base-uri 'self'" }
+  },
+  "bundle": {
+    "active": true, "targets": ["msi"], "createUpdaterArtifacts": true,
+    "publisher": "AudioHarbor", "category": "Music", "shortDescription": "Your audio, at home.",
+    "copyright": "Copyright 2026 AudioHarbor contributors",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "externalBin": ["binaries/yt-dlp", "binaries/ffmpeg", "binaries/ffprobe", "binaries/deno"],
+    "resources": { "resources/engines/": "licenses/engines/", "../THIRD_PARTY_NOTICES.md": "licenses/THIRD_PARTY_NOTICES.md" },
+    "windows": { "webviewInstallMode": { "type": "offlineInstaller" }, "wix": { "language": "en-US", "upgradeCode": "D6DAEF2D-1AE6-4E2B-8F77-FB6C94AB5C19" } }
+  },
+  "plugins": {
+    "updater": { "pubkey": "REPLACE_WITH_TAURI_PUBLIC_KEY", "endpoints": ["https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY/releases/latest/download/latest.json"], "windows": { "installMode": "basicUi" } }
+  }
+}

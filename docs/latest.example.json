@@ -1,0 +1,11 @@
+{
+  "version": "0.1.1",
+  "notes": "Describe the changes in AudioHarbor 0.1.1.",
+  "pub_date": "2026-10-31T00:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "REPLACE_WITH_COMPLETE_CONTENTS_OF_MSI_SIG_FILE",
+      "url": "https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY/releases/download/v0.1.1/AudioHarbor_0.1.1_x64_en-US.msi"
+    }
+  }
+}

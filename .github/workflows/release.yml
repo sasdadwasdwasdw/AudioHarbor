@@ -1,0 +1,101 @@
+name: Release AudioHarbor
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing stable tag, e.g. v0.1.0'
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GITHUB_OWNER: ${{ github.repository_owner }}
+      GITHUB_REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: npm ci
+      - name: Prepare hash-verified standalone engines and licenses
+        run: npm run engines:prepare
+      - name: Configure public updater trust and verify release identity
+        env:
+          TAURI_SIGNING_PUBLIC_KEY: ${{ vars.TAURI_SIGNING_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          npm run release:configure
+          node scripts/verify-release.mjs
+      - name: Prepare corresponding LGPL source archive
+        env:
+          FFMPEG_SOURCE_ARCHIVE_URL: ${{ vars.FFMPEG_SOURCE_ARCHIVE_URL }}
+          FFMPEG_SOURCE_ARCHIVE_SHA256: ${{ vars.FFMPEG_SOURCE_ARCHIVE_SHA256 }}
+        run: node scripts/prepare-sources.mjs
+      - name: Frontend checks
+        run: |
+          npm run lint
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Rust checks
+        working-directory: src-tauri
+        run: |
+          cargo fmt --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo clippy --locked --all-targets -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build MSI and signed updater artifacts
+        id: tauri
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: 'AudioHarbor v__VERSION__'
+          releaseBody: 'Windows x64 MSI. Includes yt-dlp/EJS, FFmpeg/FFprobe, and Deno. FFmpeg is LGPL; complete corresponding sources are attached. See README for installation and component notices.'
+          releaseDraft: true
+          prerelease: false
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: false
+          args: --target x86_64-pc-windows-msvc --bundles msi
+      - name: Attach source archive and notices before publishing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$env:RELEASE_TAG" .cache/release-sources/ffmpeg-corresponding-source.tar.xz THIRD_PARTY_NOTICES.md scripts/engines.lock.json --clobber
+      - name: Verify signed MSI manifest and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "$env:RELEASE_TAG" --pattern latest.json --dir .cache/published
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/verify-manifest.mjs .cache/published/latest.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit "$env:RELEASE_TAG" --draft=false --latest

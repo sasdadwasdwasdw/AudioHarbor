@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Local UI may listen to structured events and read clipboard text on request. All privileged operations are validated Rust commands. Updater is Rust-only.",
+  "windows": ["main"],
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten", "clipboard-manager:allow-read-text"]
+}
