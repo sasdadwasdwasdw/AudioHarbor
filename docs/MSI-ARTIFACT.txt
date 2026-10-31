@@ -1,0 +1,8 @@
+﻿AudioHarbor 0.1.0 local Windows x64 MSI
+Built: 2026-10-31
+Path: src-tauri/target/release/bundle/msi/AudioHarbor_0.1.0_x64_en-US.msi
+Bytes: 398499840
+SHA256: 3F752C41719AE3D47095B53C5E69E59A6FB0F937F648B801D63A94E51EF85DCF
+Authenticode: NotSigned
+Tauri updater signature: not generated in this local unsigned build
+This checksum identifies this local artifact; it does not replace Tauri updater signing.

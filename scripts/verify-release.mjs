@@ -1,0 +1,11 @@
+import { readFile } from 'node:fs/promises';
+const root = new URL('../', import.meta.url);
+const [pkg, config, cargo] = await Promise.all(['package.json','src-tauri/tauri.conf.json','src-tauri/Cargo.toml'].map(async (p) => { const text = await readFile(new URL(p, root), 'utf8'); return p.endsWith('.json') ? JSON.parse(text) : text; }));
+const cargoVersion = cargo.match(/^version = "([^"]+)"/m)?.[1];
+if (pkg.version !== config.version || pkg.version !== cargoVersion) throw new Error('Keep package.json, Cargo.toml and tauri.conf.json versions identical.');
+const tag = process.env.RELEASE_TAG;
+if (!tag || tag !== `v${pkg.version}` || !/^v\d+\.\d+\.\d+$/.test(tag)) throw new Error(`Release tag must be v${pkg.version} (stable semver).`);
+if (JSON.stringify(config.plugins.updater).includes('REPLACE_') || JSON.stringify(config.plugins.updater).includes('YOUR_')) throw new Error('Configure the public signing key and repository first.');
+if (config.bundle.windows.wix.upgradeCode !== 'D6DAEF2D-1AE6-4E2B-8F77-FB6C94AB5C19') throw new Error('Do not change the established WiX upgrade code.');
+if (!process.env.TAURI_SIGNING_PRIVATE_KEY) throw new Error('TAURI_SIGNING_PRIVATE_KEY is missing.');
+console.log(`Release configuration verified for ${tag}.`);
