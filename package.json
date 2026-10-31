@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "tauri": "tauri",
-    "engines:prepare": "node scripts/prepare-engines.mjs",
+    "engines:prepare": "tauri icon assets/icon.svg && node scripts/prepare-engines.mjs",
     "release:configure": "node scripts/configure-release.mjs",
     "msi:local": "tauri build --bundles msi --config src-tauri/tauri.local.conf.json",
     "licenses:collect": "node scripts/collect-notices.mjs"
